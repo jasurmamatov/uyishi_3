@@ -1,8 +1,13 @@
 from django.shortcuts import render, redirect
 from django.views import View
 from .models import CustomUser
-from .forms import UserForm, LoginForm
+from .forms import UserForm, LoginForm, ChangePasswordForm, UserUpdateForm
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from products.utils import trigger_email_view, trigger_email_view_login
+
+
 # Create your views here.
 class SignUp(View):
     def get(self, request):
@@ -65,7 +70,50 @@ class LoginView(View):
             return redirect('home')
         return render(request, 'accounts/login.html', {'form': form})
 
-
+@login_required
 def logoutview(request):
     logout(request)
     return redirect("home")
+
+
+
+class ProfileView(LoginRequiredMixin, View):
+    def get(self, request):
+        return render(request, 'accounts/profile.html') 
+    
+
+class ChangePasswordView(View):
+    def get(self, request):
+        form = ChangePasswordForm()
+        return render(request, 'accounts/change_pass.html', {'form': form})
+    
+    def post(self, request):
+        form = ChangePasswordForm(request.POST)
+        if form.is_valid():
+            old_password = form.cleaned_data.get('old_password')
+            new_password = form.cleaned_data.get('new_password')
+            
+            user = authenticate(username = request.user.username, password=old_password)
+            if not user:
+                raise ValidationError('eski parol xato')
+            
+            user.set_password(new_password)
+            user.save()
+            
+            return redirect('profile')
+        
+        return render(request, 'accounts/change_pass.html', {'form': form})
+
+            
+            
+class UserUpdateView(LoginRequiredMixin, View):
+    def get(self, request):
+        form = UserUpdateForm(instance=request.user)
+        return render(request, 'accounts/update.html', {'form': form})
+    
+    def post(self, request):
+        form = UserUpdateForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+        return render(request, 'accounts/update.html', {'form': form})

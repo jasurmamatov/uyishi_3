@@ -70,7 +70,23 @@ class LoginForm(forms.Form):
       
         return username
             
+class ChangePasswordForm(forms.Form):
+    old_password = forms.CharField(widget=forms.PasswordInput)
+    new_password = forms.CharField(widget=forms.PasswordInput)
+    conf_password = forms.CharField(widget=forms.PasswordInput)
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get('new_password')
+        conf_password = cleaned_data.get('conf_password')
         
+        if new_password != conf_password:
+            raise ValidationError('Yangi parollar mos emas')
+
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['first_name', 'last_name', 'username', 'email', 'phone_number']
         
     
     
